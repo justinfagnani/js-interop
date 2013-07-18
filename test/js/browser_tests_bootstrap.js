@@ -20,6 +20,10 @@ function razzle() {
   return x;
 }
 
+function getTypeOf(o) {
+  return typeof(o);
+}
+
 function varArgs() {
   var args = arguments;
   var sum = 0;
@@ -37,6 +41,9 @@ Foo.b = 38;
 
 Foo.prototype.bar = function() {
   return this.a;
+}
+Foo.prototype.toString = function() {
+  return "I'm a Foo a=" + this.a;
 }
 
 var container = new Object();

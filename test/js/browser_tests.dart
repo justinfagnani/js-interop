@@ -182,6 +182,13 @@ main() {
     expect(() => foo.baz(), throwsA(isNoSuchMethodError));
   });
 
+  test('call toString()', () {
+    var foo = new js.Proxy(js.context.Foo, 42);
+    expect(foo.toString(), equals("I'm a Foo a=42"));
+    var container = js.context.container;
+    expect(container.toString(), equals("[object Object]"));
+  });
+
   test('allocate simple JS array', () {
     final list = [1, 2, 3, 4, 5, 6, 7, 8];
     var array = js.array(list);
@@ -189,6 +196,16 @@ main() {
     expect(array.length, equals(list.length));
     for (var i = 0; i < list.length ; i++) {
       expect(array[i], equals(list[i]));
+    }
+  });
+
+  test('allocate JS array with iterable', () {
+    final set = new Set.from([1, 2, 3, 4, 5, 6, 7, 8]);
+    var array = js.array(set);
+    expect(js.context.isArray(array), isTrue);
+    expect(array.length, equals(set.length));
+    for (var i = 0; i < array.length ; i++) {
+      expect(set.contains(array[i]), isTrue);
     }
   });
 
@@ -229,17 +246,19 @@ main() {
     expect(() => js.context.invokeCallback(), throws);
   });
 
+  test('callback as parameter', () {
+    expect(js.context.getTypeOf(js.context.razzle), equals("function"));
+  });
+
   test('invoke Dart callback from JS with this', () {
-    js.scoped(() {
-      final constructor = new js.Callback.once(($this, arg1) {
-        $this.a = 42;
-        $this.b = js.array(["a", arg1]);
-      }, withThis: true);
-      var o = new js.Proxy(constructor, "b");
-      expect(o.a, equals(42));
-      expect(o.b[0], equals("a"));
-      expect(o.b[1], equals("b"));
-    });
+    final constructor = new js.Callback.once(($this, arg1) {
+      $this.a = 42;
+      $this.b = js.array(["a", arg1]);
+    }, withThis: true);
+    var o = new js.Proxy(constructor, "b");
+    expect(o.a, equals(42));
+    expect(o.b[0], equals("a"));
+    expect(o.b[1], equals("b"));
   });
 
   test('invoke Dart callback from JS with 11 parameters', () {
@@ -247,6 +266,20 @@ main() {
         p5, p6, p7, p8, p9, p10, p11) => '$p1$p2$p3$p4$p5$p6$p7$p8$p9$p10'
         '$p11');
     expect(js.context.invokeCallbackWith11params(), equals('1234567891011'));
+  });
+
+  test('create a Dart callback outside a scope', () {
+    // Note, the test framework does not guarantee that each test runs as a
+    // separate event.  This test creates a new asynchronous event and
+    // ensures that a callback can be created without a scope (i.e., that the
+    // scope is created on demand).
+    final subtest = () {
+      var callback = new js.Callback.once(() => 42);
+      js.context.callback = callback;
+      expect(js.context.invokeCallback(), equals(42));
+    };
+
+    runAsync(expectAsync0(subtest));
   });
 
   test('global scope', () {
@@ -282,6 +315,33 @@ main() {
       expect(y.a, equals(38));
       js.release(y);
       expect(() => y.a, throws);
+    });
+  });
+
+  test('retain and release in the same scope', () {
+    var x;
+    js.scoped(() {
+      x = new js.Proxy(js.context.Foo, 42);
+      expect(x.a, equals(42));
+      js.retain(x);
+      expect(x.a, equals(42));
+      js.release(x);
+      expect(() => x.a, throws);
+    });
+    js.scoped(() {
+      expect(() => x.a, throws);
+    });
+  });
+
+  test('retain and release a function', () {
+    var razzle;
+    js.scoped(() {
+      razzle = js.retain(js.context.razzle);
+    });
+    js.scoped(() {
+      expect(razzle(), 42);
+      js.release(razzle);
+      expect(() => razzle(), throws);
     });
   });
 
@@ -398,6 +458,13 @@ main() {
     expect(js.instanceof(foo, js.context.Foo), isTrue);
     expect(js.instanceof(foo, js.context.Object), isTrue);
     expect(js.instanceof(foo, js.context.String), isFalse);
+  });
+
+  test('test hasProperty', () {
+    var object = js.map({});
+    object.a = 1;
+    expect(js.hasProperty(object, "a"), isTrue);
+    expect(js.hasProperty(object, "b"), isFalse);
   });
 
   test('test deleteProperty', () {

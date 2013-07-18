@@ -58,7 +58,7 @@ For example, the following Dart code:</p>
 <pre><code>js.context.dartCallback = new Callback.once((x) =&gt; print(x*2));
 </code></pre>
 <p>defines a top-level JavaScript function 'dartCallback' that is a proxy to
-the corresponding Dart function.  The <code>Callback.once</code> constructor allows the
+the corresponding Dart function.  The <a class="crossref" href="js/Callback.html#once">Callback.once</a> constructor allows the
 proxy to the Dart function to be retained across multiple events;
 instead it is released after the first invocation.  (This is a common
 pattern for asychronous callbacks.)</p>
@@ -90,26 +90,18 @@ more detailed discussion.</p></div>
 <div>
 <h3>Properties</h3>
 <div class="field"><h4 id="context">
-<button class="show-code">Code</button>
 final <a href="js/Proxy.html">Proxy</a>         <strong>context</strong> <a class="anchor-link"
             href="#context"
             title="Permalink to context">#</a>
         </h4>
         <div class="doc">
 <p>Returns a proxy to the global JavaScript context for this page.</p>
-<pre class="source">
-Proxy get context {
- _enterScopeIfNeeded();
- return _deserialize(_jsPortSync.callSync([]));
-}
-</pre>
 </div>
 </div>
 </div>
 <div>
 <h3>Functions</h3>
 <div class="method"><h4 id="proxyCount">
-<button class="show-code">Code</button>
 int <strong>proxyCount</strong>({all: false, dartOnly: false, jsOnly: false}) <a class="anchor-link" href="#proxyCount"
               title="Permalink to proxyCount">#</a></h4>
 <div class="doc">
@@ -123,99 +115,60 @@ Set
 <span class="param">dartOnly</span> to only count proxies to Dart objects (live or all).
 Set 
 <span class="param">jsOnly</span> to only count proxies to JavaScript objects (live or all).</p>
-<pre class="source">
-int proxyCount({all: false, dartOnly: false, jsOnly: false}) {
- final js = !dartOnly;
- final dart = !jsOnly;
- final jsCounts = js ? _proxyCountJavaScript() : null;
- var sum = 0;
- if (!all) {
-   if (js)
-     sum += jsCounts[0];
-   if (dart)
-     sum += _proxiedObjectTable.count;
- } else {
-   if (js)
-     sum += jsCounts[1];
-   if (dart)
-     sum += _proxiedObjectTable.total;
- }
- return sum;
-}
-</pre>
 </div>
 </div>
 <div class="method"><h4 id="array">
-<button class="show-code">Code</button>
-<a href="js/Proxy.html">Proxy</a> <strong>array</strong>(List list) <a class="anchor-link" href="#array"
+<a href="js/Proxy.html">Proxy</a> <strong>array</strong>(Iterable data) <a class="anchor-link" href="#array"
               title="Permalink to array">#</a></h4>
 <div class="doc">
-<p>Converts a Dart 
-<span class="param">list</span> to a JavaScript array and return a <a class="crossref" href="js/Proxy.html">Proxy</a> to it.</p>
-<pre class="source">
-Proxy array(List list) =&gt; new Proxy._json(list);
-</pre>
+<p>Converts a Dart <a class="crossref" href="dart_core/Iterable.html">Iterable</a> to a JavaScript array and return a <a class="crossref" href="js/Proxy.html">Proxy</a> to it.</p>
 </div>
 </div>
 <div class="method"><h4 id="map">
-<button class="show-code">Code</button>
 <a href="js/Proxy.html">Proxy</a> <strong>map</strong>(Map data) <a class="anchor-link" href="#map"
               title="Permalink to map">#</a></h4>
 <div class="doc">
 <p>Converts a Dart map 
 <span class="param">data</span> to a JavaScript map and return a <a class="crossref" href="js/Proxy.html">Proxy</a> to it.</p>
-<pre class="source">
-Proxy map(Map data) =&gt; new Proxy._json(data);
-</pre>
 </div>
 </div>
 <div class="method"><h4 id="deleteProperty">
-<button class="show-code">Code</button>
-void <strong>deleteProperty</strong>(<a href="js/Proxy.html">Proxy</a> proxy, String name) <a class="anchor-link" href="#deleteProperty"
+void <strong>deleteProperty</strong>(<a href="js/Serializable.html">Serializable</a>&lt;<a href="js/Proxy.html">Proxy</a>&gt; proxy, String name) <a class="anchor-link" href="#deleteProperty"
               title="Permalink to deleteProperty">#</a></h4>
 <div class="doc">
 <p>Delete the 
 <span class="param">name</span> property of 
 <span class="param">proxy</span>.</p>
-<pre class="source">
-void deleteProperty(Proxy proxy, String name) {
- _jsPortDeleteProperty.callSync([proxy, name].map(_serialize).toList());
-}
-</pre>
+</div>
+</div>
+<div class="method"><h4 id="hasProperty">
+bool <strong>hasProperty</strong>(<a href="js/Serializable.html">Serializable</a>&lt;<a href="js/Proxy.html">Proxy</a>&gt; proxy, String name) <a class="anchor-link" href="#hasProperty"
+              title="Permalink to hasProperty">#</a></h4>
+<div class="doc">
+<p>Check if 
+<span class="param">proxy</span> has a 
+<span class="param">name</span> property.</p>
 </div>
 </div>
 <div class="method"><h4 id="instanceof">
-<button class="show-code">Code</button>
-bool <strong>instanceof</strong>(<a href="js/Proxy.html">Proxy</a> proxy, type) <a class="anchor-link" href="#instanceof"
+bool <strong>instanceof</strong>(<a href="js/Serializable.html">Serializable</a>&lt;<a href="js/Proxy.html">Proxy</a>&gt; proxy, <a href="js/Serializable.html">Serializable</a>&lt;<a href="js/FunctionProxy.html">FunctionProxy</a>&gt; type) <a class="anchor-link" href="#instanceof"
               title="Permalink to instanceof">#</a></h4>
 <div class="doc">
 <p>Check if 
 <span class="param">proxy</span> is instance of 
 <span class="param">type</span>.</p>
-<pre class="source">
-bool instanceof(Proxy proxy, type) {
- return _jsPortInstanceof.callSync([proxy, type].map(_serialize).toList());
-}
-</pre>
 </div>
 </div>
 <div class="method"><h4 id="release">
-<button class="show-code">Code</button>
 void <strong>release</strong>(<a href="js/Serializable.html">Serializable</a>&lt;<a href="js/Proxy.html">Proxy</a>&gt; object) <a class="anchor-link" href="#release"
               title="Permalink to release">#</a></h4>
 <div class="doc">
 <p>Releases a retained 
 <span class="param">object</span>.</p>
-<pre class="source">
-void release(Serializable&lt;Proxy&gt; object) {
- _jsInvalidate.callSync(_serialize(object.toJs()));
-}
-</pre>
 </div>
 </div>
 <div class="method"><h4 id="retain">
-<button class="show-code">Code</button>
-dynamic<strong>retain</strong>(<a href="js/Serializable.html">Serializable</a>&lt;<a href="js/Proxy.html">Proxy</a>&gt; object) <a class="anchor-link" href="#retain"
+dynamic <strong>retain</strong>(<a href="js/Serializable.html">Serializable</a>&lt;<a href="js/Proxy.html">Proxy</a>&gt; object) <a class="anchor-link" href="#retain"
               title="Permalink to retain">#</a></h4>
 <div class="doc">
 <p>Retains the given 
@@ -223,58 +176,29 @@ dynamic<strong>retain</strong>(<a href="js/Serializable.html">Serializable</a>&l
 Instead, it will need to be explicitly released.
 The given 
 <span class="param">object</span> is returned for convenience.</p>
-<pre class="source">
-dynamic retain(Serializable&lt;Proxy&gt; object) {
- _jsGlobalize.callSync(_serialize(object.toJs()));
- return object;
-}
-</pre>
 </div>
 </div>
 <div class="method"><h4 id="$experimentalExitScope">
-<button class="show-code">Code</button>
 void <strong>$experimentalExitScope</strong>(int depth) <a class="anchor-link" href="#$experimentalExitScope"
               title="Permalink to $experimentalExitScope">#</a></h4>
 <div class="doc">
 <p>WARNING: This API is experimental and may be removed.</p>
-<pre class="source">
-void $experimentalExitScope(int depth) {
- _exitScope(depth);
-}
-</pre>
 </div>
 </div>
 <div class="method"><h4 id="$experimentalEnterScope">
-<button class="show-code">Code</button>
 int <strong>$experimentalEnterScope</strong>() <a class="anchor-link" href="#$experimentalEnterScope"
               title="Permalink to $experimentalEnterScope">#</a></h4>
 <div class="doc">
 <p>WARNING: This API is experimental and may be removed.</p>
-<pre class="source">
-int $experimentalEnterScope() {
- return _enterScope();
-}
-</pre>
 </div>
 </div>
 <div class="method"><h4 id="scoped">
-<button class="show-code">Code</button>
-dynamic<strong>scoped</strong>(f) <a class="anchor-link" href="#scoped"
+dynamic <strong>scoped</strong>(f) <a class="anchor-link" href="#scoped"
               title="Permalink to scoped">#</a></h4>
 <div class="doc">
 <p>Executes the closure 
 <span class="param">f</span> within a scope.  Any proxies created within this
 scope are invalidated afterward unless they are converted to a global proxy.</p>
-<pre class="source">
-scoped(f) {
- var depth = _enterScope();
- try {
-   return f();
- } finally {
-   _exitScope(depth);
- }
-}
-</pre>
 </div>
 </div>
 </div>
@@ -312,7 +236,7 @@ scoped(f) {
         <div class="clear"></div>
         </div>
         <div class="footer">
-          <div>This page was generated at 2013-04-12 17:10:36.614</div>
+          <div>This page was generated at 2013-07-18 11:07:27.312</div>
         </div>
         <script async src="client-static.js"></script>
         </body></html>

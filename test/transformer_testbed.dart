@@ -21,7 +21,7 @@ main() {
 
   var jsLibrary = new File('../lib/js.dart').readAsStringSync();
 
-  var testHelper = new TestHelper([[interfaceTransformer]], { //, [exportTransformer]], {
+  var testHelper = new TestHelper([[interfaceTransformer], [exportTransformer]], {
     'js_experimental|lib/js.dart': jsLibrary,
     'test|web/test.dart': testDart,
 //        'test|web/part.dart': testPart,
@@ -31,17 +31,17 @@ main() {
   testHelper.run();
 
   return Future.wait([
-//        testHelper['test|web/test_exports.dart'],
-//        testHelper['test|web/test_exports.js'],
+    testHelper['test|web/test_exports.dart'],
+    testHelper['test|web/test_exports.js'],
     testHelper['test|web/test.dart'],
 //        testHelper['test|web/part.dart'],
     ])
   .then((files) {
     int i = 0;
-//        print("\ntest_exports.dart:");
-//        print(files[i++]);
-//        print("\ntest_exports.js:");
-//        print(files[i++]);
+    print("\ntest_exports.dart:");
+    print(files[i++]);
+    print("\ntest_exports.js:");
+    print(files[i++]);
     print("\ntest.dart:");
     print(files[i++]);
 //        print("\npart.dart:");
@@ -74,7 +74,11 @@ abstract class Context extends JsInterface {
 @JsConstructor('JsThing')
 abstract class JsFoo extends JsInterface {
 
-  String x;
+  factory JsFoo(String name) {}
+
+  JsFoo._create();
+
+  String name;
 
   int y() => 1;
 

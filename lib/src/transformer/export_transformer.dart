@@ -27,13 +27,9 @@ part 'export_finder.dart';
 final _logger = new Logger('js.transformer.export_transformer');
 
 class ExportTransformer extends Transformer with ResolverTransformer {
-//  static final _isPrimaryPattern = new RegExp(r'^(?:web|test|bin)/');
 
   @override
   final Resolvers resolvers;
-
-//  ExportTransformer.asPlugin(BarbackSettings settings)
-//      : this(new Resolvers(dartSdkDirectory));
 
   ExportTransformer(this.resolvers);
 

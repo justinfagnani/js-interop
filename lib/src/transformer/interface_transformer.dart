@@ -6,9 +6,7 @@ library js.transformer.interface_transformer;
 
 import 'dart:async';
 
-import 'package:analyzer/analyzer.dart' show CompilationUnit, Directive,
-    ImportDirective, LibraryDirective, ParameterKind, PartDirective,
-    PartOfDirective, parseCompilationUnit;
+import 'package:analyzer/analyzer.dart' show Annotation, CompilationUnit, Directive, ImportDirective, LibraryDirective, ParameterKind, PartDirective, PartOfDirective, parseCompilationUnit, StringLiteral;
 import 'package:analyzer/src/generated/element.dart' show ClassElement,
     ConstructorElement, Element, ElementKind, FieldElement, FunctionElement,
     LibraryElement, MethodElement, PropertyAccessorElement,
@@ -27,9 +25,6 @@ final _logger = new Logger('js.transformer.interface_transformer');
 class InterfaceTransformer extends Transformer with ResolverTransformer {
   @override
   final Resolvers resolvers;
-
-//  InterfaceTransformer.asPlugin(BarbackSettings settings)
-//      : this(new Resolvers(dartSdkDirectory));
 
   InterfaceTransformer(this.resolvers);
 
@@ -57,12 +52,12 @@ class _InterfaceTransformer {
   final Transform transform;
   final ClassElement jsInterfaceClass;
   final ClassElement jsGlobalClass;
+  final ClassElement jsConstructorClass;
   final ClassElement exportClass;
   final ClassElement noExportClass;
   final LibraryElement library;
   final TextEditTransaction transaction;
   final StringBuffer implBuffer;
-
 
   _InterfaceTransformer(
       this.transform,
@@ -71,11 +66,10 @@ class _InterfaceTransformer {
       this.transaction)
       : jsInterfaceClass = resolver.getType('js.JsInterface'),
         jsGlobalClass = resolver.getType('js.JsGlobal'),
+        jsConstructorClass = resolver.getType('js.JsConstructor'),
         exportClass = resolver.getType('js.Export'),
         noExportClass = resolver.getType('js.NoExport'),
-        implBuffer =  new StringBuffer() {
-        print("_InterfaceTransformer $library jsInterfaceClass: $jsInterfaceClass");
-      }
+        implBuffer =  new StringBuffer();
 
   Future apply() {
     var input = transform.primaryInput;
@@ -102,6 +96,7 @@ class _InterfaceTransformer {
     final bool isGlobal = _isGlobalInterface(interface);
     final factoryConstructor = _getFactoryConstructor(interface);
     final bool hasFactory = factoryConstructor != null;
+    final String jsConstructor = _getJsConstructor(interface);
 
     if (hasFactory) {
       // if there's a factory there must be a generative ctor named _create
@@ -112,16 +107,18 @@ class _InterfaceTransformer {
       }
 
       // replace the factory constructor
-
-      // TODO: parameters
-
       var body = factoryConstructor.node.body;
       var begin = body.offset;
       var end = body.end;
-      try {
-        transaction.edit(begin, end, '=> new $implName._(${ isGlobal ? "jsContext" : ""});');
-      } catch(e) {
-        print(e);
+
+      if (isGlobal) {
+        transaction.edit(begin, end, '=> new $implName._wrap(jsContext);');
+      } else {
+        // factory parameters
+        var parameterList = factoryConstructor.parameters
+            .map((p) => p.displayName)
+            .join(', ');
+        transaction.edit(begin, end, '=> new $implName._($parameterList);');
       }
     }
 
@@ -136,18 +133,36 @@ class _InterfaceTransformer {
     class $implName extends $interfaceName {
       final JsObject _obj;
     
-      static $implName wrap(JsObject o) => new $implName._(o);
+      static $implName wrap(JsObject o) => new $implName._wrap(o);
     
-      $implName._(this._obj) : super${ hasFactory ? '._create' : ''}();
+      $implName._wrap(this._obj) : super${ hasFactory ? '._create' : ''}();
     
     ''');
 
-    //        if (isGlobal) {
-    //          sb.writeln('  $implName() : _obj = jsContext, super._();');
-    //        }
+    if (hasFactory && !isGlobal) {
+      implBuffer.writeln('static final _ctor = jsContext["$jsConstructor"];');
+      // parameters
+      var parameterList = factoryConstructor.parameters
+          .map((p) => '${p.type.displayName} ${p.displayName}')
+          .join(', ');
+
+      var jsParameterList = factoryConstructor.parameters
+          .map((p) {
+            var type = p.type;
+            if (type.isSubtypeOf(jsInterfaceClass.type)) {
+              return '${p.displayName}._obj';
+            } else {
+              return p.displayName;
+            }
+          })
+          .join(', ');
+
+      String newCall = 'new JsObject(_ctor, [$jsParameterList])';
+      implBuffer.writeln('  $implName._($parameterList) : _obj = $newCall, super._create();');
+    }
 
     for (PropertyAccessorElement a in interface.accessors) {
-      if (a.isAbstract && !a.isStatic) {
+      if ((a.isAbstract || a.variable != null) && !a.isStatic) {
         if (a.isGetter) {
           _generateGetter(a);
         }
@@ -231,5 +246,16 @@ class _InterfaceTransformer {
   _getCreateConstructor(ClassElement interface) => interface.constructors
       .firstWhere((c) => c.name == '_create' && !c.isFactory,
       orElse: () => null);
+
+  _getJsConstructor(ClassElement interface) {
+    var node = interface.node;
+    for (Annotation a in node.metadata) {
+      var e = a.element;
+      if (e is ConstructorElement && e.type.returnType == jsConstructorClass.type) {
+        return (a.arguments.arguments[0] as StringLiteral).stringValue;
+      }
+    }
+    return null;
+  }
 
 }

@@ -18,6 +18,8 @@ abstract class Foo extends JsInterface {
 
   factory Foo(String name) {}
 
+  Foo._create();
+
   String name;
 
 }

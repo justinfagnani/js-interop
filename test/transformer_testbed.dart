@@ -67,7 +67,9 @@ abstract class Context extends JsInterface {
 
   Context._create();
 
-  JsFoo foo;
+  JsFoo foo; // read a typed JS object from JS
+
+  ExportMe exportMe; // write a exported Dart object to JS
 
 }
 
